@@ -3085,6 +3085,20 @@ class TestGlanceAPI(base.IsolatedUnitTest):
         res = req.get_response(self.api)
         self.assertEqual(204, res.status_int)
 
+    def test_add_member_id_too_long(self):
+        """
+        Tests adding image member raises bad request if id is too long
+        """
+        test_router_api = router.API(self.mapper)
+        self.api = test_utils.FakeAuthMiddleware(
+            test_router_api, is_admin=True)
+        member_id = 'A' * 256
+        req = webob.Request.blank('/images/%s/members/%s' % (UUID2, member_id))
+        req.method = 'PUT'
+
+        res = req.get_response(self.api)
+        self.assertEqual(400, res.status_int)
+
     def test_get_member_images(self):
         """
         Tests image listing for members
@@ -3115,6 +3129,40 @@ class TestGlanceAPI(base.IsolatedUnitTest):
 
         res = req.get_response(self.api)
         self.assertEqual(401, res.status_int)
+
+    def test_replace_members_empty_id(self):
+        """
+        Tests replacing image members raises exception if member_id is empty
+        """
+        test_router_api = router.API(self.mapper)
+        self.api = test_utils.FakeAuthMiddleware(
+            test_router_api, is_admin=True)
+        fixture = dict(member_id='')
+
+        req = webob.Request.blank('/images/%s/members' % UUID2)
+        req.method = 'PUT'
+        req.content_type = 'application/json'
+        req.body = jsonutils.dumps(dict(image_memberships=fixture))
+
+        res = req.get_response(self.api)
+        self.assertEqual(400, res.status_int)
+
+    def test_replace_members_missing_id(self):
+        """
+        Tests replacing image members raises exception if member_id is missing
+        """
+        test_router = router.API(self.mapper)
+        self.api = test_utils.FakeAuthMiddleware(
+            test_router, is_admin=True)
+
+        fixture = [dict(some_id='pattieblack', can_share=False)]
+
+        req = webob.Request.blank('/images/%s/members' % UUID2)
+        req.method = 'PUT'
+        req.content_type = 'application/json'
+        req.body = jsonutils.dumps(dict(memberships=fixture))
+        res = req.get_response(self.api)
+        self.assertEqual(400, res.status_int)
 
     def test_active_image_immutable_props_for_user(self):
         """
@@ -3274,6 +3322,24 @@ class TestGlanceAPI(base.IsolatedUnitTest):
         req.content_type = 'application/json'
         req.body = jsonutils.dumps(dict(image_memberships=fixture))
 
+        res = req.get_response(self.api)
+        self.assertEqual(400, res.status_int)
+
+    def test_replace_members_id_too_long(self):
+        """
+        Tests replacing image members raises bad request if id is too long
+        """
+        test_router = router.API(self.mapper)
+        self.api = test_utils.FakeAuthMiddleware(
+            test_router, is_admin=True)
+
+        member_id = 'A' * 256
+        fixture = [dict(member_id=member_id, can_share=False)]
+
+        req = webob.Request.blank('/images/%s/members' % UUID2)
+        req.method = 'PUT'
+        req.content_type = 'application/json'
+        req.body = jsonutils.dumps(dict(memberships=fixture))
         res = req.get_response(self.api)
         self.assertEqual(400, res.status_int)
 

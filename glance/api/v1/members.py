@@ -41,6 +41,15 @@ class Controller(controller.BaseController):
         if context.owner is None and not context.is_admin:
             raise webob.exc.HTTPUnauthorized(_("No authenticated user"))
 
+    @staticmethod
+    def _validate_member_id(req, member_id):
+        if not member_id:
+            msg = _("Member id can't be empty")
+            raise webob.exc.HTTPBadRequest(explanation=msg, request=req)
+        elif len(member_id) > 255:
+            msg = _("Member id too long: %d") % len(member_id)
+            raise webob.exc.HTTPBadRequest(explanation=msg, request=req)
+
     def _enforce(self, req, action):
         """Authorize an action against our policies"""
         try:
@@ -141,6 +150,7 @@ class Controller(controller.BaseController):
         self._check_can_access_image_members(req.context)
         self._enforce(req, 'modify_member')
         self._raise_404_if_image_deleted(req, image_id)
+        self._validate_member_id(req, id)
 
         new_number_of_members = len(registry.get_image_members(req.context,
                                                                image_id)) + 1
@@ -182,6 +192,9 @@ class Controller(controller.BaseController):
 
         memberships = body.get('memberships')
         if memberships:
+            for membership in memberships:
+                self._validate_member_id(req, membership.get('member_id'))
+
             new_number_of_members = len(body['memberships'])
             self._enforce_image_member_quota(req, new_number_of_members)
 

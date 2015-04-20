@@ -234,8 +234,9 @@ class ImageMembersController(object):
 
 class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
-    def __init__(self):
+    def __init__(self, schema=None):
         super(RequestDeserializer, self).__init__()
+        self.schema = schema or get_schema()
 
     def _get_request_body(self, request):
         output = super(RequestDeserializer, self).default(request)
@@ -246,20 +247,28 @@ class RequestDeserializer(wsgi.JSONRequestDeserializer):
 
     def create(self, request):
         body = self._get_request_body(request)
+
+        # TODO(krykowski): for backwards compatibility both `member` and
+        # `member_id` can be passed as a member identifier. It is worth
+        # noting that `member_id` is prefered way of providing the identifier
+        # as it is included in the member schema
+        if 'member_id' not in body:
+            body['member_id'] = body.pop('member', None)
+
         try:
-            member_id = body['member']
-            if not member_id:
-                raise ValueError()
-        except KeyError:
-            msg = _("Member to be added not specified")
-            raise webob.exc.HTTPBadRequest(explanation=msg)
-        except ValueError:
-            msg = _("Member can't be empty")
-            raise webob.exc.HTTPBadRequest(explanation=msg)
+            self.schema.validate(body)
+        except exception.InvalidObject as e:
+            raise webob.exc.HTTPBadRequest(explanation=e.msg)
+
+        member_id = body['member_id']
         return dict(member_id=member_id)
 
     def update(self, request):
         body = self._get_request_body(request)
+        try:
+            self.schema.validate(body)
+        except exception.InvalidObject as e:
+            raise webob.exc.HTTPBadRequest(explanation=e.msg)
         try:
             status = body['status']
         except KeyError:
@@ -318,7 +327,9 @@ class ResponseSerializer(wsgi.JSONResponseSerializer):
 _MEMBER_SCHEMA = {
     'member_id': {
         'type': 'string',
-        'description': _('An identifier for the image member (tenantId)')
+        'description': _('An identifier for the image member (tenantId)'),
+        'minLength': 1,
+        'maxLength': 255,
     },
     'image_id': {
         'type': 'string',

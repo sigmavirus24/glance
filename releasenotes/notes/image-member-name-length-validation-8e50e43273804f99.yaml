@@ -1,0 +1,8 @@
+---
+fixes:
+  - Image member names were previously not checked when adding an image member 
+    to an image. As a result, Glance did not handle an exception triggered by 
+    the database when the length of the image member name exceeded the maximum 
+    length that the column type allowed which resulted in a 500 response. By 
+    validating the length of an image member name, Glance now avoids a 500 
+    error and instead returns a 400 error

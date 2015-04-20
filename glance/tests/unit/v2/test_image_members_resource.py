@@ -510,10 +510,10 @@ class TestImageMembersSerializer(test_utils.BaseTestCase):
         self.assertEqual('application/json', response.content_type)
 
 
-class TestImagesDeserializer(test_utils.BaseTestCase):
+class TestImageMembersDeserializer(test_utils.BaseTestCase):
 
     def setUp(self):
-        super(TestImagesDeserializer, self).setUp()
+        super(TestImageMembersDeserializer, self).setUp()
         self.deserializer = glance.api.v2.image_members.RequestDeserializer()
 
     def test_create(self):
@@ -534,9 +534,22 @@ class TestImagesDeserializer(test_utils.BaseTestCase):
         self.assertRaises(webob.exc.HTTPBadRequest, self.deserializer.create,
                           request)
 
+    def test_create_empty_body(self):
+        request = unit_test_utils.get_fake_request()
+        request.body = jsonutils.dump_as_bytes({})
+        self.assertRaises(webob.exc.HTTPBadRequest, self.deserializer.create,
+                          request)
+
     def test_create_member_empty(self):
         request = unit_test_utils.get_fake_request()
         request.body = jsonutils.dump_as_bytes({'member': ''})
+        self.assertRaises(webob.exc.HTTPBadRequest, self.deserializer.create,
+                          request)
+
+    def test_create_member_too_long(self):
+        member_id = 'A' * 256
+        request = unit_test_utils.get_fake_request()
+        request.body = jsonutils.dump_as_bytes({'member': member_id})
         self.assertRaises(webob.exc.HTTPBadRequest, self.deserializer.create,
                           request)
 
@@ -555,5 +568,11 @@ class TestImagesDeserializer(test_utils.BaseTestCase):
 
     def test_update_no_body(self):
         request = unit_test_utils.get_fake_request()
+        self.assertRaises(webob.exc.HTTPBadRequest, self.deserializer.update,
+                          request)
+
+    def test_update_empty_body(self):
+        request = unit_test_utils.get_fake_request()
+        request.body = jsonutils.dump_as_bytes({})
         self.assertRaises(webob.exc.HTTPBadRequest, self.deserializer.update,
                           request)
