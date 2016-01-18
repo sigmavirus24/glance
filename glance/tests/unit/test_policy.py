@@ -538,3 +538,25 @@ class TestContextPolicyEnforcer(base.IsolatedUnitTest):
                                                      'demo',
                                                      False,
                                                      False)
+
+
+class TestImageTarget(base.IsolatedUnitTest):
+    def test_getattr_accesses_attributes_on_the_target(self):
+        target = mock.Mock(spec=['image_id'])
+        target.image_id = UUID1
+        policy_target = glance.api.policy.ImageTarget(target)
+        self.assertEqual(UUID1, policy_target['id'])
+
+    def test_getattr_returns_none_for_nonexistent_target_attributes(self):
+        target = mock.Mock(spec=['image_id'])
+        target.image_id = UUID1
+        policy_target = glance.api.policy.ImageTarget(target)
+        self.assertIsNone(policy_target['something_that_does_not_exist'])
+
+    def test_setattr_sets_attributes_on_the_target(self):
+        target = mock.Mock(spec=['image_id'])
+        target.image_id = UUID1 + 'old'
+        policy_target = glance.api.policy.ImageTarget(target)
+        self.assertEqual(UUID1 + 'old', policy_target['id'])
+        policy_target['id'] = UUID1
+        self.assertEqual(UUID1, policy_target['id'])

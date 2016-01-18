@@ -400,6 +400,15 @@ class ImageTarget(object):
                 value = None
         return value
 
+    def __setitem__(self, key, value):
+        """Set the value of 'key' on the target.
+
+        :param str key: Attribute name to set
+        :param value: Value to set to the attribute on the target
+        """
+        key = self.key_transforms(key)
+        setattr(self.target, key, value)
+
     def key_transforms(self, key):
         if key == 'id':
             key = 'image_id'
